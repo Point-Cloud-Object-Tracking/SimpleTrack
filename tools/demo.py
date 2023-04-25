@@ -4,6 +4,7 @@ from mot_3d.data_protos import BBox, Validity
 from mot_3d.mot import MOTModel
 from mot_3d.frame_data import FrameData
 from data_loader import WaymoLoader
+import uuid
 
 
 parser = argparse.ArgumentParser()
@@ -46,6 +47,8 @@ def gt_bbox2world(bboxes, egos):
     return bboxes
 
 
+frame_counter = 0
+
 def frame_visualization(bboxes, ids, states, gt_bboxes=None, gt_ids=None, pc=None, dets=None, name=''):
     visualizer = visualization.Visualizer2D(name=name, figsize=(12, 12))
     if pc is not None:
@@ -60,7 +63,11 @@ def frame_visualization(bboxes, ids, states, gt_bboxes=None, gt_ids=None, pc=Non
             visualizer.handler_box(bbox, message=str(id), color='red')
         else:
             visualizer.handler_box(bbox, message=str(id), color='light_blue')
-    visualizer.show()
+    # visualizer.show()
+    global frame_counter
+    frame_counter += 1
+    path = f"./mot_results/{frame_counter}.png" 
+    visualizer.save(path)
     visualizer.close()
 
 
@@ -149,3 +156,4 @@ if __name__ == '__main__':
         main(args.name, args.obj_type, args.config_path, args.data_folder, det_data_folder, result_folder, 
             args.gt_folder, args.start_frame, 0, 1)
     
+
