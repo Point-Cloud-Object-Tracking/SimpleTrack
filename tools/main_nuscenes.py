@@ -1,36 +1,19 @@
-""" Inference on the nuScenes dataset """
-
-import os
-import path
-import pprint
-import time
-import json
-import argparse
-import sys
-import multiprocessing
-import shutil
-
-import numpy as np
-import numba
-import yaml
-from pyquaternion import Quaternion
-from nuscenes.utils.data_classes import Box
-
+""" inference on the nuscenes dataset
+"""
+import os, numpy as np, argparse, json, sys, numba, yaml, multiprocessing, shutil
 import mot_3d.visualization as visualization, mot_3d.utils as utils
 from mot_3d.data_protos import BBox, Validity
 from mot_3d.mot import MOTModel
 from mot_3d.frame_data import FrameData
 from data_loader import NuScenesLoader
+from pyquaternion import Quaternion
+from nuscenes.utils.data_classes import Box
 
-SCRIPT_INVOCATION_TIMESTAMP: int = int(time.time())  # unix timestamp
-
-
-nu_mot_results = "../nu_mot_results/"
 
 parser = argparse.ArgumentParser()
 # running configurations
 parser.add_argument("--name", type=str, default="debug")
-parser.add_argument("--det_name", type=str, default="cp")  # cp = centerpoint
+parser.add_argument("--det_name", type=str, default="cp")
 parser.add_argument("--process", type=int, default=1)
 parser.add_argument("--visualize", action="store_true", default=False)
 parser.add_argument(
@@ -46,7 +29,7 @@ parser.add_argument(
     default="configs/config.yaml",
     help="config file path, follow the path in the documentation",
 )
-parser.add_argument("--result_folder", type=str, default=nu_mot_results)
+parser.add_argument("--result_folder", type=str, default="../nu_mot_results/")
 parser.add_argument("--data_folder", type=str, default="../datasets/nuscenes/")
 args = parser.parse_args()
 
@@ -85,19 +68,8 @@ def load_gt_bboxes(data_folder, type_token, segment_name):
     return gt_bboxes, gt_ids
 
 
-FRAME_COUNTER = 0
-
-
 def frame_visualization(
-    bboxes,
-    ids,
-    states,
-    output_dir: path.Path,
-    gt_bboxes=None,
-    gt_ids=None,
-    pc=None,
-    dets=None,
-    name="",
+    bboxes, ids, states, gt_bboxes=None, gt_ids=None, pc=None, dets=None, name=""
 ):
     visualizer = visualization.Visualizer2D(name=name, figsize=(12, 12))
     if pc is not None:
@@ -106,15 +78,11 @@ def frame_visualization(
     if gt_bboxes is not None:
         for _, bbox in enumerate(gt_bboxes):
             visualizer.handler_box(bbox, message="", color="black")
-
-    # apply threshold (threshold of what?)
     dets = [d for d in dets if d.s >= 0.01]
-
     for det in dets:
         visualizer.handler_box(
             det, message="%.2f" % det.s, color="gray", linestyle="dashed"
         )
-
     for _, (bbox, id, state_string) in enumerate(zip(bboxes, ids, states)):
         if Validity.valid(state_string):
             visualizer.handler_box(bbox, message="%.2f %s" % (bbox.s, id), color="red")
@@ -122,12 +90,7 @@ def frame_visualization(
             visualizer.handler_box(
                 bbox, message="%.2f %s" % (bbox.s, id), color="light_blue"
             )
-
-    global SCRIPT_INVOCATION_TIMESTAMP
-    global FRAME_COUNTER
-    FRAME_COUNTER += 1
-    path: str = f"{output_dir}/{SCRIPT_INVOCATION_TIMESTAMP}/{FRAME_COUNTER}.png"
-    visualizer.save(path)
+    visualizer.show()
     visualizer.close()
 
 
@@ -136,7 +99,6 @@ def sequence_mot(
     data_loader,
     obj_type,
     sequence_id,
-    output_dir: path.Path,
     gt_bboxes=None,
     gt_ids=None,
     visualize=False,
@@ -182,7 +144,6 @@ def sequence_mot(
                 frame_data.pc,
                 dets=frame_data.dets,
                 name="{:}_{:}".format(args.name, frame_index),
-                output_dir=output_dir,
             )
 
         # wrap for output
@@ -196,7 +157,7 @@ def sequence_mot(
 
 
 def main(
-    name: str,
+    name,
     obj_types,
     config_path,
     data_folder,
@@ -213,7 +174,6 @@ def main(
 
         # load model configs
         configs = yaml.load(open(config_path, "r"), Loader=yaml.Loader)
-        pprint(configs)
 
         for file_index, file_name in enumerate(file_names[:]):
             if file_index % process != token:
@@ -243,7 +203,6 @@ def main(
                 gt_bboxes,
                 gt_ids,
                 args.visualize,
-                output_dir=result_folder,
             )
 
             frame_num = len(ids)
@@ -264,7 +223,6 @@ def main(
 
 
 if __name__ == "__main__":
-    t_start = time.monotonic()
     result_folder = os.path.join(args.result_folder, args.name)
     os.makedirs(result_folder, exist_ok=True)
     summary_folder = os.path.join(result_folder, "summary")
@@ -307,10 +265,3 @@ if __name__ == "__main__":
             0,
             1,
         )
-
-    t_end = time.monotonic()
-    t_delta = t_end - t_start
-    print("All done :D")
-    print(f"Total processing time: {t_delta:04f} sec")
-
-    sys.exit(0)

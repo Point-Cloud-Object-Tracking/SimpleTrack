@@ -10,7 +10,7 @@ parser.add_argument('--file_path', type=str, default='val.json')
 parser.add_argument('--velo', action='store_true', default=False)
 parser.add_argument('--mode', type=str, default='2hz', choices=['20hz', '2hz'])
 args = parser.parse_args()
-
+    
 
 def get_sample_tokens(data_folder, mode):
     token_folder = os.path.join(data_folder, 'token_info')
