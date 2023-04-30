@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--raw_data_folder', type=str, default='../../../raw/nuscenes/data/sets/nuscenes/')
 parser.add_argument('--data_folder', type=str, default='../../../datasets/nuscenes/')
 parser.add_argument('--mode', type=str, default='2hz', choices=['20hz', '2hz'])
+parser.add_argument('--version', type=str, default='v1.0-trainval', choices=['v1.0-trainval', 'v1.0-test'])
 args = parser.parse_args()
 
 
@@ -54,6 +55,9 @@ if __name__ == '__main__':
     ts_folder = os.path.join(args.data_folder, 'ts_info')
     os.makedirs(ts_folder, exist_ok=True)
 
-    val_scene_names = splits.create_splits_scenes()['val']
-    nusc = NuScenes(version='v1.0-trainval', dataroot=args.raw_data_folder, verbose=True)
+    if args.version == 'v1.0-test':
+        val_scene_names = splits.create_splits_scenes()['test']
+    else:
+        val_scene_names = splits.create_splits_scenes()['val']
+    nusc = NuScenes(version=args.version, dataroot=args.raw_data_folder, verbose=True)
     main(nusc, val_scene_names, args.raw_data_folder, ts_folder, args.mode)
