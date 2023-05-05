@@ -90,7 +90,9 @@ def frame_visualization(
             visualizer.handler_box(
                 bbox, message="%.2f %s" % (bbox.s, id), color="light_blue"
             )
-    visualizer.show()
+            
+    # visualizer.save(path)
+    # visualizer.show()
     visualizer.close()
 
 
